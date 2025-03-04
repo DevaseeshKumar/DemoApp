@@ -1,44 +1,68 @@
 pipeline {
     agent any
 
+    tools {
+        maven 'Maven_3.9.9' // Make sure this matches the name in Jenkins Global Tool Configuration
+    }
+
     environment {
-        MAVEN_HOME = tool 'Maven'  // Uses Jenkins Maven tool
+        MAVEN_HOME = "C:/Program Files/Maven/apache-maven-3.9.9"  // Adjust the path if needed
     }
 
     stages {
         stage('Checkout Code') {
             steps {
-                git credentialsId: 'github-token', url: 'https://github.com/DevaseeshKumar/DemoApplication.git', branch: 'master'
+                script {
+                    try {
+                        git 'https://github.com/DevaseeshKumar/DemoApplication.git'
+                    } catch (Exception e) {
+                        error "❌ Failed to checkout code: ${e.message}"
+                    }
+                }
             }
         }
 
         stage('Build') {
             steps {
-                sh '${MAVEN_HOME}/bin/mvn clean package'
+                script {
+                    try {
+                        bat 'mvn clean package'  // 'bat' for Windows, 'sh' for Linux/Mac
+                    } catch (Exception e) {
+                        error "❌ Build failed: ${e.message}"
+                    }
+                }
             }
         }
 
         stage('Test') {
             steps {
-                sh '${MAVEN_HOME}/bin/mvn test'
+                script {
+                    try {
+                        bat 'mvn test'
+                    } catch (Exception e) {
+                        error "❌ Tests failed: ${e.message}"
+                    }
+                }
             }
         }
 
         stage('Deploy') {
             steps {
-                echo 'Deploying Application...'
-                // Modify with your actual deployment strategy (Docker, Kubernetes, SCP, etc.)
-                sh 'scp target/*.jar user@yourserver.com:/home/user/app.jar'
+                echo '🚀 Deploying Application...'
+                // Add deployment steps here (e.g., SCP, SSH, Docker, Kubernetes)
             }
         }
     }
 
     post {
         success {
-            echo '✅ Build & Deployment Successful!'
+            echo '✅ Build and Deployment Successful!'
         }
         failure {
             echo '❌ Build or Deployment Failed. Check logs!'
+        }
+        always {
+            cleanWs() // Clean workspace after every build
         }
     }
 }
